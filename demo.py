@@ -32,7 +32,6 @@ def safe_stats(values):
 
 def extract_features(file_path):
     y, sr = librosa.load(file_path, sr=22050)
-
     y, _ = librosa.effects.trim(y)
 
     if len(y) == 0:
@@ -64,6 +63,18 @@ def extract_features(file_path):
         safe_stats(rms),
     ])
 
+    pitch_features = extract_pitch_features(y, sr)
+
+    features = np.concatenate([
+        mfcc_features,
+        spectral_features,
+        pitch_features
+    ])
+
+    return features.reshape(1, -1)
+
+
+def extract_pitch_features(y, sr):
     try:
         f0 = librosa.yin(
             y,
@@ -94,13 +105,93 @@ def extract_features(file_path):
     except Exception:
         pitch_features = np.zeros(8)
 
-    features = np.concatenate([
-        mfcc_features,
-        spectral_features,
-        pitch_features
-    ])
+    return pitch_features
 
-    return features.reshape(1, -1)
+
+def analyze_pitch(file_path):
+    """
+    Gives human-readable pitch information for the vocal coach.
+    This does not measure pitch accuracy against a song yet.
+    It measures pitch behavior and stability inside the uploaded clip.
+    """
+
+    y, sr = librosa.load(file_path, sr=22050)
+    y, _ = librosa.effects.trim(y)
+
+    if len(y) == 0:
+        return {
+            "available": False,
+            "message": "No usable audio found for pitch analysis."
+        }
+
+    try:
+        f0 = librosa.yin(
+            y,
+            fmin=librosa.note_to_hz("C2"),
+            fmax=librosa.note_to_hz("C7"),
+            sr=sr
+        )
+
+        f0 = f0[np.isfinite(f0)]
+        f0 = f0[(f0 > 50) & (f0 < 2000)]
+
+        if len(f0) < 5:
+            return {
+                "available": False,
+                "message": "Not enough stable pitch information was detected."
+            }
+
+        avg_pitch = float(np.mean(f0))
+        min_pitch = float(np.min(f0))
+        max_pitch = float(np.max(f0))
+        pitch_range = max_pitch - min_pitch
+        pitch_std = float(np.std(f0))
+
+        # Variation as percentage of average pitch
+        variation_percent = (pitch_std / avg_pitch) * 100 if avg_pitch > 0 else 0
+
+        if variation_percent < 3:
+            stability = "high"
+            stability_note = "Your pitch stayed relatively steady."
+        elif variation_percent < 8:
+            stability = "medium"
+            stability_note = "Your pitch had some movement, but it was not extremely unstable."
+        else:
+            stability = "low"
+            stability_note = "Your pitch moved around a lot in this clip."
+
+        return {
+            "available": True,
+            "average_pitch_hz": avg_pitch,
+            "min_pitch_hz": min_pitch,
+            "max_pitch_hz": max_pitch,
+            "pitch_range_hz": pitch_range,
+            "pitch_std_hz": pitch_std,
+            "variation_percent": variation_percent,
+            "stability": stability,
+            "stability_note": stability_note
+        }
+
+    except Exception as e:
+        return {
+            "available": False,
+            "message": f"Pitch analysis failed: {e}"
+        }
+
+
+def print_pitch_report(pitch_info):
+    print("\nPitch analysis:")
+    print("----------------")
+
+    if not pitch_info["available"]:
+        print(pitch_info["message"])
+        return
+
+    print(f"Estimated average pitch: {pitch_info['average_pitch_hz']:.1f} Hz")
+    print(f"Pitch range: {pitch_info['min_pitch_hz']:.1f} Hz – {pitch_info['max_pitch_hz']:.1f} Hz")
+    print(f"Pitch variation: {pitch_info['variation_percent']:.1f}%")
+    print(f"Pitch stability: {pitch_info['stability']}")
+    print(f"Note: {pitch_info['stability_note']}")
 
 
 def choose_target_style():
@@ -143,7 +234,6 @@ def main():
 
     model_package = joblib.load(MODEL_PATH)
 
-    # Supports both old and new saved model formats
     if isinstance(model_package, dict):
         model = model_package["model"]
         model_name = model_package.get("model_name", "Unknown model")
@@ -171,6 +261,8 @@ def main():
         probabilities = model.predict_proba(features)[0]
         confidence = max(probabilities)
 
+    pitch_info = analyze_pitch(file_path)
+
     print("\nAI Vocal Coach Demo")
     print("-------------------")
     print(f"Model used: {model_name}")
@@ -178,7 +270,7 @@ def main():
     print(f"Target style: {target_style}")
 
     if confidence is not None and confidence < CONFIDENCE_THRESHOLD:
-        print(f"Detected vocal quality: uncertain / low confidence")
+        print("Detected vocal quality: uncertain / low confidence")
         print(f"Closest prediction: {prediction}")
         print(f"Confidence: {confidence:.2f}")
 
@@ -187,10 +279,12 @@ def main():
             for label, prob in sorted(zip(labels, probabilities), key=lambda x: x[1], reverse=True):
                 print(f"- {label}: {prob:.2f}")
 
+        print_pitch_report(pitch_info)
+
         print("\nGoal-aware coach feedback:")
         print(
             "The model is not confident enough to give a strong technique label. "
-            "Try using a clearer or longer recording, or compare the clip against your intended target style."
+            "Use the pitch analysis above as a guide, and try recording a clearer or longer phrase."
         )
 
     else:
@@ -199,8 +293,10 @@ def main():
         if confidence is not None:
             print(f"Confidence: {confidence:.2f}")
 
+        print_pitch_report(pitch_info)
+
         print("\nGoal-aware coach feedback:")
-        print(get_feedback(prediction, target_style))
+        print(get_feedback(prediction, target_style, pitch_info))
 
 
 if __name__ == "__main__":
