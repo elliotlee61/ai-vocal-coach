@@ -33,24 +33,35 @@ def extract_features(file_path):
     return features.reshape(1, -1)
 
 def choose_target_style():
-    print("\nChoose your target singing goal:")
-    print("1. Clear / straight tone")
-    print("2. Breathy / soft tone")
-    print("3. Controlled vibrato")
-    print("4. Match reference style / not sure")
+    print("\nWhat is your target singing goal?")
+    print("You can type one of these options:")
+    print("- clear tone")
+    print("- breathy / soft tone")
+    print("- controlled vibrato")
+    print("- straight tone")
+    print("- match reference style")
+    print("- not sure")
 
-    choice = input("Enter 1, 2, 3, or 4: ").strip()
+    target_style = input("\nType your target style: ").strip().lower()
 
-    if choice == "1":
+    if target_style in ["clear", "clear tone", "clean", "clean tone"]:
         return "clear tone"
-    elif choice == "2":
+
+    elif target_style in ["breathy", "breathy tone", "soft", "soft tone", "breathy / soft tone"]:
         return "breathy tone"
-    elif choice == "3":
+
+    elif target_style in ["vibrato", "controlled vibrato"]:
         return "controlled vibrato"
-    elif choice == "4":
+
+    elif target_style in ["straight", "straight tone", "stable", "stable tone"]:
+        return "straight tone"
+
+    elif target_style in ["match reference", "match reference style", "reference", "not sure", "unsure"]:
         return "match reference style"
+
     else:
-        print("Invalid choice. Defaulting to match reference style.")
+        print("\nI did not recognize that target style.")
+        print("Defaulting to: match reference style")
         return "match reference style"
 
 def main():
