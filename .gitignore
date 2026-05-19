@@ -217,8 +217,17 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+data/
+downloads/
 *.wav
 *.mp3
 *.flac
-*.pkl
 __pycache__/
+
+# Ignore model artifacts by default
+models/*
+*.pkl
+
+# But keep the trained demo model needed to run demo.py
+!models/
+!models/vocal_technique_model.pkl
