@@ -56,3 +56,29 @@ You can type one of these options:
 - not sure
 
 Type your target style: clear
+
+AI Vocal Coach Demo
+-------------------
+
+Model used: SVM RBF
+Audio file: data/breathy/m9_scales_breathy_a.wav
+Target style: clear tone
+Detected vocal quality: breathy
+Confidence: 0.99
+
+Pitch analysis:
+----------------
+Estimated average pitch: 420.7 Hz
+Pitch range: 88.6 Hz - 1984.1 Hz
+Pitch variation: 53.0%
+Pitch stability: low
+Note: Your pitch moved around a lot in this clip.
+
+Goal-aware coach feedback:
+The system detects a breathy tone, which usually means the sound has more air mixed into it.
+
+Your tone sounds breathy compared to your clear-tone goal. Try using steadier airflow and keeping the sound more connected.
+
+Pitch note:
+The pitch analysis estimated 53.0% pitch variation with a range of about 1895.5 Hz.
+For a clear or straight-tone goal, the pitch is moving quite a lot. Try sustaining one note more steadily.
