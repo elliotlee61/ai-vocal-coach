@@ -23,14 +23,21 @@ The system outputs:
 - confidence score
 - goal-aware coaching feedback
 
-## Example
+## Example Demo Output
+
+Example run:
 
 ```text
-Input audio: data/breathy/m9_scales_breathy_a.wav
-Target style: clear tone
+Enter path to a singing audio file:
+data/breathy/m9_scales_breathy_a.wav
 
-Detected vocal quality: breathy
-Confidence: 0.82
+What is your target singing goal?
+- clear tone
+- breathy / soft tone
+- controlled vibrato
+- straight tone
+- match reference style
+- not sure
 
-Feedback:
-The system detects a breathy tone. Your tone sounds breathy compared to your clear-tone goal. Try using steadier airflow and keeping the sound more connected.
+Type your target style:
+clear
