@@ -109,12 +109,6 @@ def extract_pitch_features(y, sr):
 
 
 def analyze_pitch(file_path):
-    """
-    Gives human-readable pitch information for the vocal coach.
-    This does not measure pitch accuracy against a song yet.
-    It measures pitch behavior and stability inside the uploaded clip.
-    """
-
     y, sr = librosa.load(file_path, sr=22050)
     y, _ = librosa.effects.trim(y)
 
@@ -132,8 +126,7 @@ def analyze_pitch(file_path):
             sr=sr
         )
 
-        f0 = f0[np.isfinite(f0)]
-        f0 = f0[(f0 > 50) & (f0 < 2000)]
+        f0 = clean_pitch_values(f0)
 
         if len(f0) < 5:
             return {
@@ -178,6 +171,47 @@ def analyze_pitch(file_path):
             "message": f"Pitch analysis failed: {e}"
         }
 
+def get_pitch_contour(file_path):
+    y, sr = librosa.load(file_path, sr=22050)
+    y, _ = librosa.effects.trim(y)
+
+    if len(y) == 0:
+        return None, None
+
+    try:
+        f0 = librosa.yin(
+            y,
+            fmin=librosa.note_to_hz("C2"),
+            fmax=librosa.note_to_hz("C6"),
+            sr=sr
+        )
+
+        times = librosa.times_like(f0, sr=sr)
+
+        f0 = np.asarray(f0)
+        times = np.asarray(times)
+
+        valid = np.isfinite(f0) & (f0 > 65) & (f0 < 900)
+
+        f0_valid = f0[valid]
+        times_valid = times[valid]
+
+        if len(f0_valid) < 5:
+            return times_valid, f0_valid
+
+        q1 = np.percentile(f0_valid, 25)
+        q3 = np.percentile(f0_valid, 75)
+        iqr = q3 - q1
+
+        lower = max(65, q1 - 1.5 * iqr)
+        upper = min(900, q3 + 1.5 * iqr)
+
+        keep = (f0_valid >= lower) & (f0_valid <= upper)
+
+        return times_valid[keep], f0_valid[keep]
+
+    except Exception:
+        return None, None
 
 def print_pitch_report(pitch_info):
     print("\nPitch analysis:")
@@ -226,6 +260,22 @@ def choose_target_style():
         print("Defaulting to: match reference style")
         return "match reference style"
 
+def clean_pitch_values(f0):
+    f0 = np.asarray(f0)
+    f0 = f0[np.isfinite(f0)]
+    f0 = f0[(f0 > 65) & (f0 < 900)]
+
+    if len(f0) < 5:
+        return f0
+
+    q1 = np.percentile(f0, 25)
+    q3 = np.percentile(f0, 75)
+    iqr = q3 - q1
+
+    lower = max(65, q1 - 1.5 * iqr)
+    upper = min(900, q3 + 1.5 * iqr)
+
+    return f0[(f0 >= lower) & (f0 <= upper)]
 
 def main():
     if not os.path.exists(MODEL_PATH):

@@ -4,8 +4,9 @@ import tempfile
 import joblib
 import numpy as np
 import streamlit as st
+import matplotlib.pyplot as plt
 
-from demo import extract_features, analyze_pitch
+from demo import extract_features, analyze_pitch, get_pitch_contour
 from feedback import get_feedback
 
 
@@ -104,6 +105,91 @@ def compare_quality(reference_label, user_label):
         f"The reference was detected as {reference_label}, while the user attempt was detected as {user_label}."
     )
 
+def pitch_similarity_score(reference_pitch, user_pitch):
+    if not reference_pitch.get("available", False) or not user_pitch.get("available", False):
+        return None
+
+    avg_diff = abs(reference_pitch["average_pitch_hz"] - user_pitch["average_pitch_hz"])
+    variation_diff = abs(reference_pitch["variation_percent"] - user_pitch["variation_percent"])
+
+    # Lower difference = better score
+    avg_score = max(0, 100 - (avg_diff * 1.2))
+    variation_score = max(0, 100 - (variation_diff * 4))
+
+    score = (0.65 * avg_score) + (0.35 * variation_score)
+
+    return round(min(100, max(0, score)))
+
+
+def quality_match_score(reference_label, user_label):
+    if reference_label == user_label:
+        return 100
+
+    # Some qualities are closer than others
+    close_pairs = {
+        ("straight", "vibrato"),
+        ("vibrato", "straight"),
+    }
+
+    if (reference_label, user_label) in close_pairs:
+        return 60
+
+    return 40
+
+
+def overall_score(pitch_score, quality_score):
+    if pitch_score is None:
+        return quality_score
+
+    return round((0.55 * pitch_score) + (0.45 * quality_score))
+
+def score_label(score):
+    if score is None:
+        return "N/A"
+    if score >= 80:
+        return "strong"
+    elif score >= 60:
+        return "moderate"
+    elif score >= 40:
+        return "partial"
+    else:
+        return "weak"
+        
+def priority_recommendation(pitch_score, quality_score, reference_label, user_label):
+    if pitch_score is None:
+        return "Focus on getting a cleaner recording so pitch can be analyzed."
+
+    if quality_score < 70 and pitch_score >= 70:
+        return f"Priority: match the reference vocal quality. The reference was {reference_label}, but your attempt was {user_label}."
+
+    if pitch_score < 70 and quality_score >= 70:
+        return "Priority: improve pitch similarity while keeping the same vocal style."
+
+    if pitch_score < 70 and quality_score < 70:
+        return "Priority: first slow down the phrase and focus on matching the reference pitch and vocal quality separately."
+
+    return "Good match overall. Focus on consistency and control."
+
+def plot_pitch_contours(reference_path, user_path):
+    ref_times, ref_pitch = get_pitch_contour(reference_path)
+    user_times, user_pitch = get_pitch_contour(user_path)
+
+    if ref_times is None or user_times is None or len(ref_times) == 0 or len(user_times) == 0:
+        st.warning("Pitch contour plot was not available for one of the files.")
+        return
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+
+    ax.plot(ref_times, ref_pitch, label="Reference")
+    ax.plot(user_times, user_pitch, label="Your attempt")
+
+    ax.set_title("Pitch Contour Comparison")
+    ax.set_xlabel("Time (seconds)")
+    ax.set_ylabel("Estimated pitch (Hz)")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    st.pyplot(fig)
 
 def main():
     st.set_page_config(page_title="AI Vocal Coach", page_icon="🎤", layout="wide")
@@ -197,6 +283,11 @@ def main():
             if user_conf is not None:
                 st.metric("Confidence", f"{user_conf:.2f}")
 
+            if user_conf is not None and user_conf < 0.60:
+                st.warning(
+                    "The vocal quality prediction for your attempt has low confidence. "
+                    "Try recording in a quieter environment or singing a longer phrase."
+                )
             st.write("Pitch analysis")
             st.json(format_pitch_info(user_pitch))
 
@@ -205,8 +296,37 @@ def main():
         quality_comparison = compare_quality(reference_label, user_label)
         pitch_comparison = compare_pitch(reference_pitch, user_pitch)
 
+        pitch_score = pitch_similarity_score(reference_pitch, user_pitch)
+        quality_score = quality_match_score(reference_label, user_label)
+        final_score = overall_score(pitch_score, quality_score)
+
+        score_col1, score_col2, score_col3 = st.columns(3)
+
+        with score_col1:
+            if pitch_score is not None:
+                st.metric("Pitch similarity", f"{pitch_score}/100 ({score_label(pitch_score)})")
+            else:
+                st.metric("Pitch similarity", "N/A")
+
+        with score_col2:
+            st.metric("Vocal quality match", f"{quality_score}/100")
+
+        with score_col3:
+            st.metric("Overall match", f"{final_score}/100")
+
         st.write(quality_comparison)
         st.write(pitch_comparison)
+
+        st.subheader("Pitch contour")
+        plot_pitch_contours(reference_path, user_path)
+
+        st.subheader("Practice priority")
+        st.info(priority_recommendation(
+            pitch_score,
+            quality_score,
+            reference_label,
+            user_label
+        ))
 
         st.header("4. Coaching Feedback")
 
