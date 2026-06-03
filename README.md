@@ -2,83 +2,100 @@
 
 This project is a proposal-stage AI vocal coach demo for Musical AI.
 
-The goal is to analyze a short singing clip, detect a vocal quality, assess basic pitch behavior, and give goal-aware coaching feedback. The system is not meant to say that a technique is automatically good or bad. Instead, it compares the detected vocal quality and pitch behavior to the user's intended target style.
+The goal is to help a singer compare their own vocal attempt to a reference vocal clip. The system analyzes both recordings, detects vocal quality, compares pitch behavior, and gives goal-aware coaching feedback.
+
+The system is not meant to say that a vocal technique is automatically good or bad. A breathy tone, straight tone, or vibrato can all be valid depending on the singer's goal. Instead, the coach compares the detected vocal quality and pitch behavior to the reference or target style.
+
+---
 
 ## Current Demo
 
-The current demo uses a trained vocal technique classifier with three labels:
+The current demo is a lightweight Streamlit web app.
+
+The user provides:
+
+1. a reference vocal audio file
+2. their own attempt, either by uploading an audio file or recording directly in the app
+3. a target goal, such as matching the reference style, clear tone, breathy tone, or controlled vibrato
+
+The system outputs:
+
+- detected vocal quality for the reference
+- detected vocal quality for the user's attempt
+- model confidence scores
+- pitch analysis for both recordings
+- pitch similarity score
+- vocal quality match score
+- overall match score
+- pitch contour comparison plot
+- practice priority
+- goal-aware coaching feedback
+
+---
+
+## Vocal Quality Classifier
+
+The current model detects three vocal quality labels:
 
 - breathy
 - straight
 - vibrato
 
-The user provides:
+The classifier was trained using a VocalSet subset organized into these three labels.
 
-1. a path to a singing audio file
-2. a target singing goal, such as clear tone, breathy tone, or controlled vibrato
+Current dataset subset:
 
-The system outputs:
+- 200 breathy clips
+- 200 straight clips
+- 199 vibrato clips
+- 599 total clips
 
-- detected vocal quality
-- confidence score
-- pitch analysis
-- pitch stability rating
-- goal-aware coaching feedback
+The current best model is:
+
+- SVM with RBF kernel
+
+Training result:
+
+- 150 test clips
+- best accuracy: 0.893
+
+Class precision:
+
+- breathy: 0.87
+- straight: 0.85
+- vibrato: 0.96
+
+This is still a prototype result. A stronger final evaluation should use held-out singers to check whether the model is learning vocal technique rather than singer-specific patterns.
+
+---
 
 ## Pitch Analysis
 
-The demo estimates the singer's pitch contour from the audio file. It does not yet measure full pitch accuracy against a reference melody. Instead, it measures pitch behavior inside the clip.
+The app estimates the pitch contour of both the reference audio and the user's attempt.
 
 The pitch analysis includes:
 
 - estimated average pitch
-- minimum and maximum pitch
 - pitch range
-- pitch variation percentage
-- pitch stability rating: high, medium, or low
+- pitch variation
+- pitch movement/stability rating
+- pitch contour plot
 
-This helps the coach give more grounded feedback. For example, if the user chooses a clear or straight-tone goal, the system expects the pitch to be relatively stable. If the user chooses controlled vibrato, some pitch movement is expected, but the movement should still sound intentional and controlled.
+The system compares the reference and attempt using pitch behavior, such as average pitch difference and pitch variation difference.
 
-## Example Demo Output
+Important note: this demo does **not** yet perform full note-by-note pitch accuracy against a melody. It compares pitch behavior and pitch contour similarity.
 
-Example run:
+---
+
+## Scoring
+
+The app produces three main scores.
+
+### Pitch Similarity
+
+Compares pitch behavior between the reference and user attempt.
+
+Example:
 
 ```text
-Enter path to a singing audio file: data/breathy/m9_scales_breathy_a.wav
-
-What is your target singing goal?
-You can type one of these options:
-- clear tone
-- breathy / soft tone
-- controlled vibrato
-- straight tone
-- match reference style
-- not sure
-
-Type your target style: clear
-
-AI Vocal Coach Demo
--------------------
-
-Model used: SVM RBF
-Audio file: data/breathy/m9_scales_breathy_a.wav
-Target style: clear tone
-Detected vocal quality: breathy
-Confidence: 0.99
-
-Pitch analysis:
-----------------
-Estimated average pitch: 420.7 Hz
-Pitch range: 88.6 Hz - 1984.1 Hz
-Pitch variation: 53.0%
-Pitch stability: low
-Note: Your pitch moved around a lot in this clip.
-
-Goal-aware coach feedback:
-The system detects a breathy tone, which usually means the sound has more air mixed into it.
-
-Your tone sounds breathy compared to your clear-tone goal. Try using steadier airflow and keeping the sound more connected.
-
-Pitch note:
-The pitch analysis estimated 53.0% pitch variation with a range of about 1895.5 Hz.
-For a clear or straight-tone goal, the pitch is moving quite a lot. Try sustaining one note more steadily.
+Pitch similarity: 97/100 (strong)
