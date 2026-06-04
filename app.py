@@ -197,9 +197,9 @@ def main():
     st.title("🎤 AI Vocal Coach")
     st.write(
         "Upload a reference vocal clip and your own attempt. "
-        "The coach compares vocal quality and pitch behavior, then gives feedback."
+        "The coach compares your vocal quality and pitch behavior to the reference, "
+        "then gives feedback on how closely you matched it."
     )
-
     model, model_name, labels = load_model()
 
     st.sidebar.header("Model")
@@ -236,17 +236,8 @@ def main():
                 key="user_recording"
             )
 
-    target_style = st.selectbox(
-        "What are you trying to match?",
-        [
-            "match reference style",
-            "clear tone",
-            "breathy tone",
-            "controlled vibrato",
-            "straight tone",
-            "not sure",
-        ]
-    )
+    target_style = "match reference style"
+    st.info("Goal: match the reference style")
 
     if st.button("Analyze"):
         if reference_file is None or user_file is None:
@@ -330,11 +321,7 @@ def main():
 
         st.header("4. Coaching Feedback")
 
-        if target_style == "match reference style":
-            style_goal = reference_label
-        else:
-            style_goal = target_style
-
+        style_goal = reference_label
         feedback = get_feedback(user_label, style_goal, user_pitch)
 
         st.write(feedback)
