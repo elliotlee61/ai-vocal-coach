@@ -1,12 +1,4 @@
 def get_feedback(predicted_label, target_style, pitch_info=None):
-    """
-    Goal-aware feedback.
-
-    predicted_label: model prediction, such as breathy, straight, vibrato
-    target_style: user's intended goal, such as clear, breathy, straight, vibrato
-    pitch_info: optional pitch analysis dictionary from demo.py
-    """
-
     predicted_label = predicted_label.lower().strip()
     target_style = target_style.lower().strip()
 
@@ -35,42 +27,42 @@ def get_feedback(predicted_label, target_style, pitch_info=None):
 
     matching_feedback = {
         "breathy": (
-            "This matches your breathy or soft-tone goal. "
-            "Next, focus on keeping the breathiness controlled so the pitch and words stay clear."
+            "This matches the reference's breathy or soft vocal quality. "
+            "Next, focus on keeping the breathiness controlled while maintaining clear pitch and words."
         ),
         "straight": (
-            "This matches your clear or straight-tone goal. "
+            "This matches the reference's clear or straight vocal quality. "
             "Next, focus on keeping the tone consistent across the whole phrase."
         ),
         "vibrato": (
-            "This matches your vibrato goal. "
+            "This matches the reference's vibrato quality. "
             "Next, focus on keeping the vibrato rate even and avoiding excessive pitch wobble."
         ),
     }
 
     adjustment_feedback = {
         ("breathy", "straight"): (
-            "Your tone sounds breathy compared to your clear-tone goal. "
+            "Your attempt sounds breathier than the reference. "
             "Try using steadier airflow and keeping the sound more connected."
         ),
         ("breathy", "vibrato"): (
-            "Your tone sounds breathy, but your goal was controlled vibrato. "
+            "Your attempt sounds breathy, while the reference was detected as vibrato. "
             "Try first getting a clearer sustained note, then add a gentle and even vibrato."
         ),
         ("straight", "breathy"): (
-            "Your tone sounds mostly straight, but your goal was a breathy or softer style. "
+            "Your attempt sounds straighter than the reference. "
             "Try allowing a little more air into the tone while keeping the pitch steady."
         ),
         ("straight", "vibrato"): (
-            "Your tone sounds mostly straight, but your goal was vibrato. "
+            "Your attempt sounds mostly straight, while the reference used vibrato. "
             "Try sustaining the note first, then gently vary the pitch in a controlled, even way."
         ),
         ("vibrato", "straight"): (
-            "The system detects vibrato, but your goal was a clearer straight tone. "
-            "Try holding the note more steadily and reducing pitch movement."
+            "Your attempt has more vibrato than the reference. "
+            "Try holding the note more steadily and reducing extra pitch movement."
         ),
         ("vibrato", "breathy"): (
-            "The system detects vibrato, but your goal was a breathy or soft tone. "
+            "Your attempt has vibrato, while the reference was detected as breathier or softer. "
             "Try reducing pitch movement and focusing on a lighter, airier sound."
         ),
     }
@@ -89,7 +81,7 @@ def get_feedback(predicted_label, target_style, pitch_info=None):
         coaching_text = adjustment_feedback.get(
             (predicted_label, normalized_target),
             (
-                f"The detected quality was '{predicted_label}', but your target style was '{target_style}'. "
+                f"Your attempt was detected as '{predicted_label}', while the reference target was '{target_style}'. "
                 "Try comparing your recording to your intended sound and adjust one element at a time."
             )
         )
