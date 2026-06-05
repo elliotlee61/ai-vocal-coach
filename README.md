@@ -1,139 +1,93 @@
 # AI Vocal Coach
 
-AI Vocal Coach is a final project for Musical AI. It is a lightweight web-based vocal coaching system that lets a user compare their own singing attempt against a reference vocal clip.
+AI Vocal Coach is a final project for Musical AI. It is a web-based vocal coaching system that compares a singer’s performance to a reference vocal recording.
 
-The purpose of the project is to give singers feedback that is more useful than a simple karaoke score. Instead of only judging whether a singer matched the exact pitch, the system analyzes both **vocal quality** and **pitch behavior**, then gives feedback based on what the user is trying to match.
+The user uploads a reference vocal clip and either uploads or records their own attempt. The system analyzes both recordings, detects vocal quality, compares pitch behavior, calculates similarity scores, displays a pitch contour graph, and gives reference-based coaching feedback.
 
-The system is not designed to say that a technique is automatically good or bad. A breathy tone, straight tone, or vibrato can all be valid depending on the musical goal. The coach compares the user's attempt to a reference clip or selected target style and gives feedback based on that context.
-
----
-
-## Current Product
-
-The current version is a Streamlit web app.
-
-The user provides:
-
-1. a reference vocal audio file
-2. their own singing attempt, either by uploading an audio file or recording directly in the app
-3. a target goal, such as matching the reference style, clear tone, breathy tone, straight tone, or controlled vibrato
-
-The system outputs:
-
-* detected vocal quality for the reference
-* detected vocal quality for the user's attempt
-* model confidence scores
-* pitch analysis for both recordings
-* pitch similarity score
-* vocal quality match score
-* overall match score
-* pitch contour comparison plot
-* practice priority
-* goal-aware coaching feedback
+The purpose of the project is not to judge a vocal technique as automatically good or bad. Breathy tone, straight tone, and vibrato can all be valid depending on the performance. Instead, the system evaluates how closely the user’s attempt matches the reference.
 
 ---
 
 ## Main Features
 
-### Reference-Based Vocal Coaching
+* Upload a reference vocal recording
+* Upload or record a singing attempt
+* Detect vocal quality in both recordings
+* Display model confidence
+* Analyze pitch behavior
+* Compare reference and user pitch contours
+* Calculate pitch similarity
+* Calculate vocal quality match
+* Calculate an overall match score
+* Display a practice priority
+* Generate reference-matching coaching feedback
 
-The user uploads a reference clip and their own attempt. The system compares the two recordings and gives feedback on how closely the user's attempt matches the reference.
+---
 
-### Upload or Record Attempt
+## Supported Vocal Qualities
 
-The user can either upload their attempt as an audio file or record directly inside the web app.
-
-### Vocal Quality Detection
-
-The system uses a trained machine learning classifier to detect vocal quality.
-
-The current supported labels are:
+The current classifier detects three vocal qualities:
 
 * breathy
 * straight
 * vibrato
 
-### Pitch Behavior Analysis
-
-The app estimates the pitch contour of both the reference and user attempt.
-
-The pitch analysis includes:
-
-* estimated average pitch
-* pitch range
-* pitch variation
-* pitch movement/stability rating
-* pitch contour comparison plot
-
-### Scoring
-
-The app gives three main scores:
-
-* pitch similarity
-* vocal quality match
-* overall match
-
-### Practice Priority
-
-The coach gives a short practice priority based on the comparison.
+The system analyzes both the reference and the user attempt using the same classifier.
 
 Example:
 
 ```text
-Good match overall. Focus on consistency and control.
+Reference vocal quality: breathy
+User vocal quality: straight
 ```
 
-or:
-
-```text
-Priority: first slow down the phrase and focus on matching the reference pitch and vocal quality separately.
-```
-
-### Goal-Aware Feedback
-
-The feedback depends on the user's goal. For example, a breathy tone is not automatically treated as bad. If the reference or target style is breathy, the coach treats breathiness as a valid stylistic goal. If the target is clear tone, the coach suggests ways to make the sound more connected.
+The coach then explains how the user’s vocal quality differs from the reference and suggests an adjustment.
 
 ---
 
 ## How the System Works
 
-The system follows this pipeline:
-
 ```text
 Reference audio
         ↓
-Vocal quality detection + pitch analysis
-
-User attempt audio
+Vocal quality detection
+Pitch analysis
         ↓
-Vocal quality detection + pitch analysis
 
-Comparison
+User attempt
+        ↓
+Vocal quality detection
+Pitch analysis
+        ↓
+
+Reference comparison
         ↓
 Pitch similarity score
 Vocal quality match score
 Overall match score
 Pitch contour visualization
 Practice priority
-Goal-aware coaching feedback
+Coaching feedback
 ```
 
 ---
 
-## Model
+## Machine Learning Model
 
-The vocal quality classifier was trained on a local VocalSet subset organized into three labels:
+The vocal quality classifier was trained using a subset of the VocalSet dataset.
 
-* breathy
-* straight
-* vibrato
-
-Dataset subset used:
+Training data:
 
 * 200 breathy clips
 * 200 straight clips
 * 199 vibrato clips
 * 599 total clips
+
+The training script compared three machine learning classifiers:
+
+* Random Forest
+* Extra Trees
+* Support Vector Machine with an RBF kernel
 
 The best-performing model was:
 
@@ -141,22 +95,22 @@ The best-performing model was:
 SVM with RBF kernel
 ```
 
-Training result:
+Evaluation result:
 
 ```text
 Test clips: 150
-Best accuracy: 0.893
+Accuracy: 89.3%
 ```
 
 Class precision:
 
 ```text
-breathy: 0.87
-straight: 0.85
-vibrato: 0.96
+Breathy: 0.87
+Straight: 0.85
+Vibrato: 0.96
 ```
 
-The trained model is saved at:
+The trained model is stored at:
 
 ```text
 models/vocal_technique_model.pkl
@@ -168,12 +122,12 @@ This allows the web app to run without retraining the model every time.
 
 ## Audio Features
 
-The model uses extracted audio features rather than raw audio directly.
+The model does not classify raw audio directly. Each recording is converted into numerical audio features.
 
-Features include:
+The extracted features include:
 
 * MFCCs
-* MFCC deltas
+* MFCC delta features
 * spectral centroid
 * spectral bandwidth
 * spectral rolloff
@@ -182,139 +136,267 @@ Features include:
 * zero-crossing rate
 * pitch-based features
 
-Pitch-based features help the model distinguish between straight tone and vibrato because vibrato involves pitch movement over time, while straight tone is generally more stable.
+MFCC and spectral features help describe vocal tone and timbre.
+
+Pitch-based features help distinguish between straight tone and vibrato because straight tone is generally more stable, while vibrato includes repeated pitch movement.
 
 ---
 
 ## Pitch Analysis
 
-The app estimates pitch using a pitch-tracking method and creates a pitch contour over time.
+The system estimates the fundamental frequency, or F0, across time.
 
-The pitch contour is used to compare the reference and user attempt. The system calculates differences in average pitch and pitch variation, then converts those differences into a pitch similarity score.
+This creates a pitch contour for both the reference and the user attempt.
 
-Important note: this version does not yet perform full note-by-note pitch accuracy against a melody. It compares pitch behavior and pitch contour similarity. A future version could add reference alignment and note-level pitch scoring.
+The pitch analysis includes:
+
+* estimated average pitch
+* minimum pitch
+* maximum pitch
+* pitch range
+* pitch variation
+* pitch movement or stability
+* pitch contour graph
+
+Extreme pitch-tracking outliers are filtered before the pitch values are displayed and scored.
+
+The app compares the reference and user attempt using:
+
+* average pitch difference
+* pitch variation difference
+* pitch contour behavior
+
+Important note: the current system performs pitch behavior comparison. It does not yet perform full note-by-note melody alignment or identify every individual sharp or flat note.
 
 ---
 
-## Files
+## Scoring
+
+The app generates three main scores.
+
+### Pitch Similarity
+
+Pitch similarity compares the pitch behavior of the reference and the user attempt.
+
+The score is based on:
+
+* average pitch difference
+* pitch variation difference
+
+The score labels are:
 
 ```text
-app.py                              Streamlit web interface
-demo.py                             Terminal version and audio analysis functions
-feedback.py                         Goal-aware coaching feedback
-train_model.py                      Model training and evaluation script
-requirements.txt                    Python dependencies
-models/vocal_technique_model.pkl    Trained vocal quality model
-screenshots/                        App and terminal screenshots
+80–100: Strong
+60–79: Moderate
+40–59: Partial
+0–39: Weak
+```
+
+### Vocal Quality Match
+
+The vocal quality match compares the detected vocal quality labels.
+
+Current scoring:
+
+```text
+Same vocal quality: 100
+Straight and vibrato mismatch: 60
+Other vocal quality mismatch: 40
+```
+
+### Overall Match
+
+The overall score combines pitch similarity and vocal quality match.
+
+```text
+Overall match =
+55% pitch similarity
++
+45% vocal quality match
+```
+
+Pitch is weighted slightly more because the user is attempting to match a reference performance.
+
+---
+
+## Practice Priority
+
+The system gives the user a short practice priority based on the comparison.
+
+Examples:
+
+```text
+Good match overall. Focus on consistency and control.
+```
+
+```text
+Priority: improve pitch similarity while keeping the same vocal style.
+```
+
+```text
+Priority: match the reference vocal quality.
+```
+
+```text
+Priority: slow down the phrase and practice pitch and vocal quality separately.
+```
+
+---
+
+## Coaching Feedback
+
+The coaching feedback is based on:
+
+* the vocal quality detected in the reference
+* the vocal quality detected in the user attempt
+* pitch behavior from the user attempt
+* how closely the two recordings match
+
+Example:
+
+```text
+The reference was detected as breathy, while the user attempt was detected as straight.
+
+Your attempt sounds straighter than the reference. Try allowing slightly more air into the tone while keeping the pitch controlled.
+```
+
+If the detected vocal qualities match, the coach suggests focusing on consistency and control rather than changing the style.
+
+---
+
+## User Interface
+
+The web interface was built with Streamlit.
+
+Streamlit is a Python library used to create interactive web applications. It provides the interface for:
+
+* audio uploading
+* microphone recording
+* audio playback
+* buttons
+* scores
+* graphs
+* feedback text
+
+Streamlit is the interface layer. The trained SVM model and audio-analysis functions perform the actual analysis.
+
+---
+
+## Project Files
+
+```text
+app.py
+Streamlit web interface
+
+demo.py
+Terminal version, feature extraction, and pitch analysis
+
+feedback.py
+Reference-matching coaching feedback
+
+train_model.py
+Model training and evaluation
+
+requirements.txt
+Python dependencies
+
+models/vocal_technique_model.pkl
+Trained vocal quality classifier
+
+screenshots/
+Images of the working application
 ```
 
 ---
 
 ## How to Run the Web App
 
-### 1. Clone or open the repository
-
-If using GitHub Codespaces, open the repository in a Codespace.
-
-If running locally:
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/elliotlee61/ai-vocal-coach.git
 cd ai-vocal-coach
 ```
 
-### 2. Install dependencies
+You can also open the repository directly in GitHub Codespaces.
+
+### 2. Install the required Python packages
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Make sure the trained model exists
+### 3. Confirm that the trained model exists
 
-The app expects the model file here:
+The application expects the trained model at:
 
 ```text
 models/vocal_technique_model.pkl
 ```
 
-If the model file is already included, the app can run directly.
+If the trained model is included in the repository, no retraining is required.
 
-If the model file is missing, retrain the model:
-
-```bash
-python train_model.py
-```
-
-### 4. Run the Streamlit app
+### 4. Run the Streamlit application
 
 ```bash
 streamlit run app.py
 ```
 
-### 5. Open the app
+You can also use:
 
-If running locally, Streamlit should open in the browser automatically.
+```bash
+python -m streamlit run app.py
+```
 
-If using GitHub Codespaces:
+### 5. Open the application
 
-1. run `streamlit run app.py`
-2. open the **Ports** tab
-3. find the forwarded Streamlit port, usually `8501`
-4. click the browser/globe icon to open the app
+When running locally, Streamlit should open automatically in a browser.
+
+When using GitHub Codespaces:
+
+1. Run `streamlit run app.py`
+2. Open the **Ports** tab
+3. Find port `8501`
+4. Click the browser or globe icon
+5. Open the forwarded Streamlit page
 
 ---
 
-## How to Use the App
+## How to Use the Application
 
-1. Upload a reference vocal clip.
-2. Upload your own attempt or select **Record now** to record directly in the app.
-3. Choose what you are trying to match:
+1. Upload a reference vocal recording.
+2. Choose how to provide your attempt:
 
-   * match reference style
-   * clear tone
-   * breathy tone
-   * controlled vibrato
-   * straight tone
-   * not sure
+   * upload an audio file
+   * record directly in the app
+3. Provide the user attempt.
 4. Click **Analyze**.
-5. Review the results:
+5. Review:
 
-   * detected vocal quality
-   * confidence score
+   * reference vocal quality
+   * user vocal quality
+   * confidence scores
    * pitch analysis
-   * pitch similarity score
-   * vocal quality match score
-   * overall match score
-   * pitch contour plot
+   * pitch similarity
+   * vocal quality match
+   * overall match
+   * pitch contour graph
    * practice priority
    * coaching feedback
 
----
+Recommended audio:
 
-## Example Output
-
-```text
-Reference detected quality: breathy
-User detected quality: breathy
-
-Pitch similarity: 97/100 (strong)
-Vocal quality match: 100/100
-Overall match: 98/100
-
-Practice priority:
-Good match overall. Focus on consistency and control.
-
-Feedback:
-The system detects a breathy tone, which usually means the sound has more air mixed into it.
-
-This matches your breathy or soft-tone goal. Next, focus on keeping the breathiness controlled so the pitch and words stay clear.
-```
+* short vocal-only recordings
+* WAV format when possible
+* minimal background noise
+* little or no instrumental accompaniment
+* similar phrases for the reference and user attempt
 
 ---
 
-## Terminal Version
+## Running the Terminal Version
 
-The project also includes a terminal version of the coach.
+The project also includes a terminal version.
 
 Run:
 
@@ -322,82 +404,63 @@ Run:
 python demo.py
 ```
 
-Then enter an audio path when prompted.
+Then enter the path to an audio file when prompted.
 
-Example:
-
-```text
-data/breathy/m9_scales_breathy_a.wav
-```
-
-Then enter a target style, such as:
-
-```text
-clear tone
-```
-
-or:
-
-```text
-breathy
-```
-
-or:
-
-```text
-controlled vibrato
-```
-
-The terminal version outputs:
+The terminal version displays:
 
 * detected vocal quality
 * confidence score
 * pitch analysis
-* goal-aware coaching feedback
+* coaching feedback
+
+The Streamlit application is the primary final-product interface.
 
 ---
 
-## Training the Model
+## Retraining the Model
 
-To retrain the model, run:
+Retraining is not required to use the web application if the trained model file is included.
+
+To retrain the classifier:
 
 ```bash
 python train_model.py
 ```
 
-The training script:
-
-1. loads VocalSet clips from the local `data/` folders
-2. extracts audio and pitch features
-3. trains multiple classifiers
-4. evaluates the models
-5. saves the best model to `models/vocal_technique_model.pkl`
-
-Expected local data folder structure:
+Expected local dataset structure:
 
 ```text
 data/
-  breathy/
-  straight/
-  vibrato/
+    breathy/
+    straight/
+    vibrato/
 ```
 
-The VocalSet audio files are not included because they are large.
+The training script:
+
+1. loads the labeled audio clips
+2. extracts audio and pitch features
+3. creates a training and test split
+4. trains Random Forest, Extra Trees, and SVM RBF models
+5. evaluates each model
+6. selects the best model
+7. saves it to `models/vocal_technique_model.pkl`
+
+The VocalSet audio files are not included in this repository because of their size.
 
 ---
 
 ## Current Limitations
 
-This is a final class product, but it is still a lightweight academic prototype.
-
-Current limitations:
+The current final class product has several limitations:
 
 * only three vocal quality labels are supported
-* pitch comparison is based on pitch behavior, not full note-by-note melody accuracy
-* the system does not yet perform detailed timing alignment between reference and attempt
-* the model has not yet been evaluated with held-out singers
-* the feedback is rule-based after the model prediction
-* noisy recordings or recordings with background instruments may reduce accuracy
+* pitch comparison is not full note-by-note melody accuracy
+* reference and user timing are not automatically aligned
+* coaching text is rule-based after model prediction
+* the classifier has not yet been evaluated using completely held-out singers
+* noisy audio and background music can reduce reliability
+* the overall score is a project-designed similarity score, not a standardized professional singing score
 
 ---
 
@@ -405,23 +468,35 @@ Current limitations:
 
 Possible future improvements include:
 
-* held-out singer evaluation
-* more vocal quality labels
-* better reference alignment
 * note-by-note pitch accuracy
-* timing comparison
-* improved pitch tracking
-* more detailed practice plans
-* a more polished user interface
+* automatic time alignment
+* timing and rhythm comparison
+* more vocal quality labels
+* held-out singer evaluation
+* improved vibrato rate and depth analysis
+* more detailed exercises
+* progress tracking
+* improved support for real-world recordings
+* deployment as a permanent public web application
 
-The current version focuses on a complete minimum viable product:
+---
+
+## Final Product Summary
+
+AI Vocal Coach is a complete minimum viable vocal-coaching product for the class.
+
+It includes:
 
 ```text
-reference upload
-+ attempt upload or recording
-+ vocal quality detection
-+ pitch behavior comparison
-+ scoring
-+ visualization
+reference audio upload
++ user upload or recording
++ trained vocal quality classifier
++ pitch analysis
++ reference comparison
++ similarity scores
++ pitch contour visualization
++ practice priority
 + coaching feedback
 ```
+
+The final system demonstrates how a trained audio classifier can be combined with pitch analysis and a user interface to create a practical reference-matching AI vocal coach.
