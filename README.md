@@ -394,29 +394,6 @@ Recommended audio:
 
 ---
 
-## Running the Terminal Version
-
-The project also includes a terminal version.
-
-Run:
-
-```bash
-python demo.py
-```
-
-Then enter the path to an audio file when prompted.
-
-The terminal version displays:
-
-* detected vocal quality
-* confidence score
-* pitch analysis
-* coaching feedback
-
-The Streamlit application is the primary final-product interface.
-
----
-
 ## Retraining the Model
 
 Retraining is not required to use the web application if the trained model file is included.
